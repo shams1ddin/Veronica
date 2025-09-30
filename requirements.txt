@@ -3,6 +3,7 @@ uvicorn==0.30.6
 aiohttp==3.10.5
 pydantic==2.9.2
 google-generativeai==0.7.2
+python-dotenv==1.0.1
 
 # Работа с файлами
 pypdf2==3.0.1
@@ -13,3 +14,4 @@ striprtf==0.0.26
 python-magic==0.4.27
 requests==2.32.3
 openpyxl==3.1.5
+
