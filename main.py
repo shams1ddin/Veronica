@@ -430,7 +430,7 @@ async def chat_with_document(request: FileChatRequest):
         if not content.strip():
             raise HTTPException(status_code=400, detail="Не удалось извлечь текст из файла")
 
-        full_query = f"""You are a helpful assistant. Format your responses using proper markdown:
+        system_instruction = """You are a helpful assistant. Format your responses using proper markdown:
 - Use **bold** for emphasis
 - Use *italics* for subtle emphasis
 - Use proper headings with # for titles
@@ -441,9 +441,15 @@ async def chat_with_document(request: FileChatRequest):
 - Use > for quotes
 - Use [text](url) for links
 
-Provide clear and concise answers without additional tags or metadata.
+Provide clear and concise answers without additional tags or metadata."""
 
-Содержимое документа:\n{content}\n\n{query if query else 'Анализируй документ.'}"""
+        # Разное поведение в зависимости от наличия текстового запроса
+        if query:
+            # Если есть текстовый запрос, не показываем анализ документа отдельно
+            full_query = f"{system_instruction}\n\nСодержимое документа:\n{content}\n\n{query}"
+        else:
+            # Если запроса нет, просим проанализировать документ
+            full_query = f"{system_instruction}\n\nСодержимое документа:\n{content}\n\nАнализируй документ и предоставь подробную информацию о его содержании."
         
         messages = []
         if chat_id:
@@ -494,10 +500,7 @@ async def chat_with_image(request: FileChatRequest):
             image_content = f.read()
         base64_image = base64.b64encode(image_content).decode('utf-8')
 
-        message_content = [
-            {
-                "type": "text",
-                "text": f"""You are a helpful assistant. Format your responses using proper markdown:
+        system_instruction = """You are a helpful assistant. Format your responses using proper markdown:
 - Use **bold** for emphasis
 - Use *italics* for subtle emphasis
 - Use proper headings with # for titles
@@ -508,9 +511,20 @@ async def chat_with_image(request: FileChatRequest):
 - Use > for quotes
 - Use [text](url) for links
 
-Provide clear and concise answers without additional tags or metadata.
+Provide clear and concise answers without additional tags or metadata."""
 
-{query or "Опиши изображение."}"""
+        # Разное поведение в зависимости от наличия текстового запроса
+        if query:
+            # Если есть текстовый запрос, не показываем анализ изображения отдельно
+            message_text = f"{system_instruction}\n\n{query}"
+        else:
+            # Если запроса нет, просим проанализировать изображение
+            message_text = f"{system_instruction}\n\nОпиши детально это изображение. Что на нем изображено? Какие объекты, люди или текст присутствуют? Предоставь подробный анализ."
+        
+        message_content = [
+            {
+                "type": "text",
+                "text": message_text
             },
             {
                 "type": "image_url",
@@ -558,23 +572,33 @@ async def chat_with_multiple_images(request: MultipleFilesChatRequest):
         if not files:
             raise HTTPException(status_code=400, detail="At least one file is required")
 
-        message_content = [{
-            "type": "text",
-            "text": f"""Ты - помощник, который анализирует несколько изображений одновременно. 
+        system_instruction = """Ты - помощник, который анализирует несколько изображений одновременно. 
+Используй markdown для форматирования:
+- **жирный** для выделения
+- *курсив* для подчеркивания
+- Заголовки с #
+- Списки с - или *
+- Нумерованные списки с 1. 2. 3."""
+
+        # Разное поведение в зависимости от наличия текстового запроса
+        if query:
+            # Если есть текстовый запрос, не показываем анализ изображений отдельно
+            message_text = f"{system_instruction}\n\n{query}"
+        else:
+            # Если запроса нет, просим проанализировать изображения
+            message_text = f"""{system_instruction}
+
 При ответе:
 1. Сначала проанализируй все изображения вместе
 2. Найди связи между изображениями
 3. Дай общий контекстный ответ, учитывающий все изображения
 4. Если есть особенности или детали в отдельных изображениях - укажи их
 
-Используй markdown для форматирования:
-- **жирный** для выделения
-- *курсив* для подчеркивания
-- Заголовки с #
-- Списки с - или *
-- Нумерованные списки с 1. 2. 3.
-
-{query or "Проанализируй все эти изображения вместе и опиши их."}"""
+Проанализируй все эти изображения вместе и опиши их детально."""
+        
+        message_content = [{
+            "type": "text",
+            "text": message_text
         }]
         
         for file_info in files:
