@@ -7,6 +7,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="css/starry-sky.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Markdown парсер -->
+<script src="https://cdn.jsdelivr.net/npm/marked@14.1.2/lib/marked.umd.min.js"></script>
+
+<!-- LaTeX рендер (MathJax — универсальный, поддерживает химию/физ/мат) -->
+<script type="text/javascript" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js?extensions=[tex2jax.js]"></script>
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']],
+            processEscapes: true,
+            packages: ['base', 'ams', 'noerrors', 'noundefined', 'mhchem']
+        },
+        options: {
+            ignoreHtmlClass: 'tex2jax_ignore',
+            processHtmlClass: 'tex2jax_process'
+        },
+        startup: {
+            ready: function() {
+                MathJax.startup.defaultReady();
+            }
+        }
+    };
+    </script>
     <style>
         :root {
     --primary-bg: #262624;
@@ -1654,7 +1679,25 @@ body.starry-sky-active {
     /* background: rgba(5, 6, 10, 0.95); */
     /* transition: background 1.5s ease; */
 }
+.ai-message .message-content {  /* Или .assistant .message-content */
+    line-height: 1.6;  /* Для читаемости текста вокруг формул */
+    overflow-wrap: break-word;
+}
 
+.message-content .katex {  /* KaTeX генерит классы .katex */
+    font-size: 1.05em;  /* Чуть крупнее, но не переигрывай */
+    margin: 0.5em 0;    /* Отступы сверху/снизу для блочных формул */
+    display: block;     /* Блочные формулы на новой строке */
+    text-align: center; /* Центрируем длинные уравнения */
+}
+
+.message-content .katex-display {  /* Для $$...$$ */
+    margin: 1em 0;
+}
+
+.message-content .katex-inline {  /* Для $...$ */
+    vertical-align: middle;  /* Выравнивание в строке */
+}
 /* Адаптивные стили для разных устройств */
 @media screen and (max-width: 1024px) {
     .file-preview-pdf-container {
@@ -2439,7 +2482,7 @@ body.starry-sky-active {
 
        
  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+   document.addEventListener('DOMContentLoaded', async () => {
     // Инициализация DOM-элементов
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
@@ -2474,7 +2517,7 @@ body.starry-sky-active {
     const cameraFeed = document.getElementById('camera-feed');
     const captureBtn = document.getElementById('capture-btn');
     const cameraCanvas = document.getElementById('camera-canvas');
-
+    
 
     // Новые элементы для бокового окна предпросмотра
     const filePreviewSidebar = document.getElementById('file-preview-sidebar');
@@ -3847,10 +3890,15 @@ body.starry-sky-active {
         });
 
         if (type === 'assistant' && !skipStreaming && !isError) {
-            const parsedContent = marked.parse(content);
+            // Парсим Markdown в HTML
+            const parsedContent = marked.parse(content, {
+                breaks: true,
+                gfm: true
+            });
+            // Извлекаем plain text для эффекта печати (без HTML-тегов)
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = parsedContent;
-            const plainText = tempDiv.textContent || tempDiv.innerText;
+            const plainText = tempDiv.textContent || tempDiv.innerText || content;
             let i = 0;
             isTyping = true;
             updateSendButton();
@@ -3870,12 +3918,23 @@ body.starry-sky-active {
                     return;
                 }
                 if (i < plainText.length) {
-                    messageContent.innerHTML = parsedContent.substring(0, i);
+                    // Печатаем plain text
+                    messageContent.textContent = plainText.substring(0, i);
                     i++;
                     scrollToBottomIfNeeded();
                     setTimeout(typeText, 5);
                 } else {
+                    // В конце печати: устанавливаем полный parsed HTML и рендерим LaTeX
                     messageContent.innerHTML = parsedContent;
+                    if (typeof MathJax !== 'undefined') {
+                        MathJax.typesetPromise([messageContent]).then(() => {
+                            scrollToBottomIfNeeded();
+                        }).catch((err) => {
+                            console.error('MathJax error:', err);
+                        });
+                    } else {
+                        console.warn('MathJax not loaded');
+                    }
                     isTyping = false;
                     isStreaming = false;
                     updateSendButton();
@@ -3891,8 +3950,23 @@ body.starry-sky-active {
             typeText();
         } else if (type === 'assistant' && (skipStreaming || isError)) {
             // Применяем Markdown форматирование для сообщений, загруженных из истории
-            if (!isError) {
-                messageContent.innerHTML = marked.parse(content);
+            if (!isError && typeof marked !== 'undefined') {
+                messageContent.innerHTML = marked.parse(content, {
+                    breaks: true,
+                    gfm: true
+                });
+                // Render LaTeX formulas for non-streaming messages
+                if (typeof MathJax !== 'undefined') {
+                    MathJax.typesetPromise([messageContent]).then(() => {
+                        scrollToBottomIfNeeded();
+                    }).catch((err) => {
+                        console.error('MathJax error:', err);
+                    });
+                } else {
+                    console.warn('MathJax not loaded');
+                }
+            } else if (isError) {
+                messageContent.textContent = content;
             }
             actionsDiv.style.display = 'flex';
             if (likeBtn && (likeBtn.classList.contains('active') || dislikeBtn.classList.contains('active'))) {
@@ -5604,233 +5678,6 @@ body.starry-sky-active {
     loadChatHistory();
     await loadModels();
 });
- </script>
-    <!-- Скрипт для анимации звездного неба -->
-    <script>
-        (() => {
-  // Создаем canvas для звездного неба
-  const createStarrySky = () => {
-    // Проверяем, существует ли уже canvas
-    let canvas = document.getElementById('starry-sky');
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvas.id = 'starry-sky';
-      // Добавляем canvas в начало body, чтобы он был под всеми элементами
-      document.body.appendChild(canvas);
-      // Устанавливаем z-index, чтобы canvas был под всеми элементами
-      canvas.style.zIndex = '-1000';
-    }
-    return canvas;
-  };
-
-  // Инициализация canvas и контекста
-  const canvas = createStarrySky();
-  const ctx = canvas.getContext('2d');
-  const dpr = Math.min(2, window.devicePixelRatio || 1.5);
-  let w = 0, h = 0;
-  let isActive = false;
-  let inactivityTimer = null;
-  let animationFrame = null;
-
-  // Функция изменения размера canvas
-  function resize() {
-    w = window.innerWidth;
-    h = window.innerHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-  }
-
-  // Настройка звезд
-  const stars = [];
-  const STAR_COUNT = 120;
-  
-  function initStars() {
-    stars.length = 0; // Очищаем массив звезд
-    for (let i = 0; i < STAR_COUNT; i++) {
-      stars.push({
-        x: Math.random() * w * dpr,
-        y: Math.random() * h * dpr,
-        r: Math.random() * 0.8 * dpr + 0.2,
-        tw: Math.random() * 1000,
-        speed: 0,
-        fall: false,
-        life: 1
-      });
-    }
-  }
-
-  // Создание падающей звезды
-  function spawnFallingStar() {
-    const s = stars[Math.floor(Math.random() * stars.length)];
-    if (!s.fall) {
-      s.fall = true;
-      s.speed = 3 + Math.random() * 3;
-      s.life = 1;
-    }
-  }
-
-  // Переменные для анимации
-  let lastFall = 0;
-  let start = performance.now();
-  let skyRotation = 0;
-
-  // Функция отрисовки
-  function draw(now) {
-    if (!isActive) return;
-
-    const dt = (now - start) / 1000;
-    const fade = Math.min(1, dt / 2);
-
-    ctx.fillStyle = `rgba(5,6,10,${0.5 * fade})`;
-    ctx.fillRect(0, 0, w * dpr, h * dpr);
-
-    ctx.save();
-    ctx.translate(w * dpr / 2, h * dpr / 2);
-    ctx.rotate(skyRotation);
-    ctx.translate(-w * dpr / 2, -h * dpr / 2);
-
-    stars.forEach(s => {
-      if (s.fall) {
-        s.x += s.speed * 2 * dpr;
-        s.y += s.speed * dpr;
-        s.life -= 0.01;
-        ctx.strokeStyle = `rgba(255,255,200,${s.life})`;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y);
-        ctx.lineTo(s.x - 25 * dpr, s.y - 12 * dpr);
-        ctx.stroke();
-        if (s.life <= 0 || s.x > w * dpr || s.y > h * dpr) {
-          s.x = Math.random() * w * dpr;
-          s.y = Math.random() * h * dpr * 0.5;
-          s.fall = false;
-          s.life = 1;
-        }
-      } else {
-        const tw = 0.5 + 0.5 * Math.sin((now * 0.002) + s.tw);
-        ctx.globalAlpha = fade * (0.5 + 0.5 * tw);
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-
-    ctx.restore();
-    ctx.globalAlpha = 1;
-
-    if (now - lastFall > 3000 + Math.random() * 4000) {
-      spawnFallingStar();
-      lastFall = now;
-    }
-
-    skyRotation += 0.00002; // Медленное вращение неба
-    animationFrame = requestAnimationFrame(draw);
-  }
-
-  // Показать звездное небо
-  function showStarrySky() {
-    if (!isActive) {
-      isActive = true;
-      canvas.style.opacity = '1'; // Уменьшаем непрозрачность еще больше
-      // Делаем текстовое поле прозрачным при активации заставки
-      const chatInputWrapper = document.querySelector('.chat-input-wrapper');
-      if (chatInputWrapper) {
-        chatInputWrapper.style.transition = 'background-color 1.5s ease';
-        chatInputWrapper.style.backgroundColor = 'rgba(38, 38, 36, 0.3)';
-      }
-      // Делаем dropdown-button прозрачным при активации заставки
-      const dropdownButton = document.querySelector('.dropdown-button');
-      if (dropdownButton) {
-        dropdownButton.style.transition = 'background-color 1.5s ease';
-        dropdownButton.style.backgroundColor = 'rgba(38, 38, 36, 0.3)';
-      }
-      // Не добавляем класс к body, чтобы не влиять на основной интерфейс
-      // document.body.classList.add('starry-sky-active');
-      start = performance.now();
-      resize();
-      initStars();
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(draw);
-    }
-  }
-
-  // Скрыть звездное небо
-  function hideStarrySky() {
-    if (isActive) {
-      isActive = false;
-      canvas.style.opacity = '0';
-      // Возвращаем непрозрачность текстового поля
-      const chatInputWrapper = document.querySelector('.chat-input-wrapper');
-      if (chatInputWrapper) {
-        chatInputWrapper.style.transition = 'background-color 1.5s ease';
-        chatInputWrapper.style.backgroundColor = '#262624';
-      }
-      // Возвращаем непрозрачность dropdown-button
-      const dropdownButton = document.querySelector('.dropdown-button');
-      if (dropdownButton) {
-        dropdownButton.style.transition = 'background-color 1.5s ease';
-        dropdownButton.style.backgroundColor = '#262624';
-      }
-      // Не удаляем класс, так как мы его не добавляем
-      // document.body.classList.remove('starry-sky-active');
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-        animationFrame = null;
-      }
-    }
-  }
-
-  // Сброс таймера неактивности
-  function resetInactivityTimer() {
-    if (inactivityTimer) {
-      clearTimeout(inactivityTimer);
-    }
-    
-    // Если звездное небо активно, скрываем его
-    if (isActive) {
-      hideStarrySky();
-    }
-    
-    // Устанавливаем новый таймер
-    inactivityTimer = setTimeout(() => {
-      showStarrySky();
-    }, 10000); // 10 секунд неактивности
-  }
-
-  // Инициализация
-  function init() {
-    window.addEventListener('resize', resize);
-    resize();
-    initStars();
-
-    // События для отслеживания активности пользователя
-    const userEvents = [
-      'mousemove', 'mousedown', 'mouseup', 'click', 
-      'keypress', 'keydown', 'keyup',
-      'scroll', 'wheel',
-      'touchstart', 'touchmove', 'touchend',
-      'focus', 'blur', 'input', 'change'
-    ];
-    
-    userEvents.forEach(event => {
-      document.addEventListener(event, resetInactivityTimer, { passive: true });
-    });
-
-    // Специальная обработка для элементов интерфейса
-    const chatInput = document.querySelector('.chat-input');
-    if (chatInput) {
-      chatInput.addEventListener('focus', resetInactivityTimer, { passive: true });
-    }
-
-    // Запускаем таймер неактивности
-    resetInactivityTimer();
-  }
-
-  // Запуск инициализации
-  init();
-})();
     </script>
     </body>
     </html>
