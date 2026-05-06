@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+
+  # ── Veronica AI Backend ──────────────────────────────────────────────────────
+  veronica:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: veronica_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - SQLITE_DB_PATH=/app/data/veronica.db
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost}
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-10}
+      - FILE_TTL_SECONDS=${FILE_TTL_SECONDS:-3600}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-1440}
+    volumes:
+      # Персистентная БД — переживает рестарты и пересборки
+      - veronica_data:/app/data
+    networks:
+      - veronica_net
+    # Порт открываем только для nginx (не наружу напрямую)
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Nginx reverse proxy ──────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: veronica_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    networks:
+      - veronica_net
+    depends_on:
+      veronica:
+        condition: service_healthy
+
+  # ── Certbot (SSL) ────────────────────────────────────────────────────────────
+  certbot:
+    image: certbot/certbot:latest
+    container_name: veronica_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # Запускается вручную: docker-compose run certbot certonly --webroot ...
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+
+volumes:
+  veronica_data:
+    driver: local
+
+networks:
+  veronica_net:
+    driver: bridge

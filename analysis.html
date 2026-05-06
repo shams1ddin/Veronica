@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veronica AI — Анализ + План</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #2a2a38;
+    --accent: #7c6aff;
+    --accent2: #ff6a9b;
+    --accent3: #6affb8;
+    --warn: #ffb347;
+    --danger: #ff4d6d;
+    --info: #4dc8ff;
+    --text: #c8c8d8;
+    --text-dim: #6a6a88;
+    --text-bright: #eeeeff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 60px 24px; position: relative; z-index: 1; }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 48px;
+    width: fit-content;
+  }
+  .tab-btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--surface2); }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* HEADER */
+  header { text-align: center; margin-bottom: 56px; }
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 4px 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+  header h1 { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; color: var(--text-bright); line-height: 1.1; letter-spacing: -2px; margin-bottom: 12px; }
+  header h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  header p { color: var(--text-dim); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 52px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 18px; text-align: center; transition: border-color 0.3s; }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-num { font-size: 2.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; margin-bottom: 6px; }
+  .stat-label { font-size: 0.72rem; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .c-purple { color: var(--accent); } .c-pink { color: var(--accent2); } .c-green { color: var(--accent3); }
+  .c-warn { color: var(--warn); } .c-danger { color: var(--danger); } .c-info { color: var(--info); }
+
+  /* SECTION */
+  section { margin-bottom: 52px; }
+  .section-title {
+    font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; color: var(--text-dim);
+    letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px 30px; margin-bottom: 14px; transition: transform 0.2s, border-color 0.2s; }
+  .card:hover { transform: translateY(-2px); border-color: rgba(124,106,255,0.4); }
+  .card-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .card-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+  .icon-danger { background: rgba(255,77,109,0.15); } .icon-warn { background: rgba(255,179,71,0.15); }
+  .icon-info { background: rgba(77,200,255,0.15); } .icon-green { background: rgba(106,255,184,0.15); }
+  .icon-purple { background: rgba(124,106,255,0.15); }
+  .card-title { font-size: 0.97rem; font-weight: 600; color: var(--text-bright); margin-bottom: 4px; }
+  .tag { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .tag-danger { background: rgba(255,77,109,0.2); color: var(--danger); }
+  .tag-warn { background: rgba(255,179,71,0.2); color: var(--warn); }
+  .tag-info { background: rgba(77,200,255,0.2); color: var(--info); }
+  .tag-green { background: rgba(106,255,184,0.2); color: var(--accent3); }
+  .tag-purple { background: rgba(124,106,255,0.2); color: var(--accent); }
+  .tag-done { background: rgba(106,255,184,0.15); color: var(--accent3); border: 1px solid rgba(106,255,184,0.3); }
+  .card-body { color: var(--text); font-size: 0.88rem; line-height: 1.75; }
+  .card-body strong { color: var(--text-bright); }
+
+  /* CODE */
+  .code-block {
+    background: #0d0d14; border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 18px; margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #a8d8a8;
+    overflow-x: auto; line-height: 1.65; white-space: pre;
+  }
+  .code-block .comment { color: var(--text-dim); }
+  .code-block .key { color: var(--accent2); }
+  .code-block .val { color: var(--accent3); }
+  .code-block .danger-line { color: var(--danger); background: rgba(255,77,109,0.08); display: block; margin: 0 -18px; padding: 0 18px; }
+  .code-block .good-line { color: var(--accent3); background: rgba(106,255,184,0.06); display: block; margin: 0 -18px; padding: 0 18px; }
+
+  /* ARCH GRID */
+  .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .arch-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .arch-item-title { font-size: 0.76rem; font-weight: 600; color: var(--text-bright); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .arch-item ul { list-style: none; }
+  .arch-item ul li { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-dim); padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .arch-item ul li:last-child { border-bottom: none; }
+
+  /* SCORE */
+  .score-section { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px 30px; margin-bottom: 14px; }
+  .score-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .score-row:last-child { margin-bottom: 0; }
+  .score-label { font-size: 0.8rem; color: var(--text); width: 160px; flex-shrink: 0; }
+  .score-bar-bg { flex: 1; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 99px; }
+  .score-val { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; width: 36px; text-align: right; color: var(--text-dim); }
+
+  /* ===== ROADMAP / PLAN ===== */
+  .roadmap { position: relative; padding-left: 0; }
+
+  .roadmap-item {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 0 20px;
+    margin-bottom: 0;
+    position: relative;
+  }
+
+  /* vertical line */
+  .roadmap-item:not(:last-child) .roadmap-line {
+    position: absolute;
+    left: 27px;
+    top: 56px;
+    bottom: -1px;
+    width: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .roadmap-num-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .roadmap-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    border: 2px solid;
+    background: var(--bg);
+    transition: transform 0.2s;
+  }
+  .roadmap-item:hover .roadmap-circle { transform: scale(1.1); }
+
+  .phase-fix-quick .roadmap-circle  { border-color: var(--accent3); color: var(--accent3); }
+  .phase-fix-sec   .roadmap-circle  { border-color: var(--danger);  color: var(--danger); }
+  .phase-fix-code  .roadmap-circle  { border-color: var(--warn);    color: var(--warn); }
+  .phase-dev       .roadmap-circle  { border-color: var(--accent);  color: var(--accent); }
+  .phase-dev2      .roadmap-circle  { border-color: var(--accent2); color: var(--accent2); }
+  .phase-dev3      .roadmap-circle  { border-color: var(--info);    color: var(--info); }
+
+  .roadmap-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .roadmap-item:hover .roadmap-body { border-color: rgba(124,106,255,0.35); }
+
+  .phase-fix-quick .roadmap-body { border-left: 3px solid var(--accent3); }
+  .phase-fix-sec   .roadmap-body { border-left: 3px solid var(--danger); }
+  .phase-fix-code  .roadmap-body { border-left: 3px solid var(--warn); }
+  .phase-dev       .roadmap-body { border-left: 3px solid var(--accent); }
+  .phase-dev2      .roadmap-body { border-left: 3px solid var(--accent2); }
+  .phase-dev3      .roadmap-body { border-left: 3px solid var(--info); }
+
+  .roadmap-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .roadmap-title { font-size: 1rem; font-weight: 600; color: var(--text-bright); }
+  .roadmap-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .effort-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .roadmap-desc { font-size: 0.86rem; color: var(--text); line-height: 1.72; margin-bottom: 12px; }
+  .roadmap-desc strong { color: var(--text-bright); }
+
+  .step-list { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+  .step-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 0.82rem; color: var(--text-dim);
+    background: var(--surface2);
+    border-radius: 7px; padding: 8px 12px;
+  }
+  .step-item .step-icon { flex-shrink: 0; margin-top: 1px; }
+
+  /* IDEAS GRID */
+  .ideas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .idea-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px 22px; position: relative; overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
+  .idea-card:hover { transform: translateY(-3px); }
+  .idea-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .idea-card.c1::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .idea-card.c2::before { background: linear-gradient(90deg, var(--accent2), var(--warn)); }
+  .idea-card.c3::before { background: linear-gradient(90deg, var(--accent3), var(--info)); }
+  .idea-card.c4::before { background: linear-gradient(90deg, var(--info), var(--accent)); }
+  .idea-card.c5::before { background: linear-gradient(90deg, var(--warn), var(--accent3)); }
+  .idea-card.c6::before { background: linear-gradient(90deg, var(--accent), var(--accent3)); }
+  .idea-num { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 700; color: var(--border); position: absolute; top: 18px; right: 18px; line-height: 1; }
+  .idea-title { font-size: 0.93rem; font-weight: 600; color: var(--text-bright); margin-bottom: 10px; margin-top: 4px; }
+  .idea-body { font-size: 0.81rem; color: var(--text-dim); line-height: 1.65; }
+  .idea-tech { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tech-pill { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); padding: 3px 10px; border-radius: 20px; }
+
+  /* PULSE */
+  .pulse { display: inline-block; width: 8px; height: 8px; background: var(--accent3); border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(106,255,184,0.4)}50%{opacity:.8;box-shadow:0 0 0 6px rgba(106,255,184,0)} }
+
+  /* FADE IN */
+  .fade-in { opacity: 0; transform: translateY(18px); animation: fadeUp 0.55s forwards; }
+  @keyframes fadeUp { to { opacity: 1; transform: none; } }
+
+  footer { text-align: center; padding: 48px 0 24px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-dim); border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="fade-in">
+    <div class="badge">Project Report · Veronica AI</div>
+    <h1>Veronica <span>AI</span></h1>
+    <p>// analysis.html · FastAPI + Gemini + OpenRouter · полный отчёт проекта</p>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('analysis')">📊 Анализ</button>
+    <button class="tab-btn" onclick="switchTab('plan')">🗺️ План исправлений</button>
+    <button class="tab-btn" onclick="switchTab('ideas')">💡 Развитие</button>
+  </div>
+
+  <!-- ===================== TAB: ANALYSIS ===================== -->
+  <div id="tab-analysis" class="tab-content active">
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num c-purple">~680</div><div class="stat-label">строк кода</div></div>
+      <div class="stat-card"><div class="stat-num c-pink">18</div><div class="stat-label">API endpoints</div></div>
+      <div class="stat-card"><div class="stat-num c-warn">7</div><div class="stat-label">уязвимостей</div></div>
+      <div class="stat-card"><div class="stat-num c-danger">3</div><div class="stat-label">критических</div></div>
+      <div class="stat-card"><div class="stat-num c-green">3</div><div class="stat-label">AI модели</div></div>
+      <div class="stat-card"><div class="stat-num c-info">6</div><div class="stat-label">идей развития</div></div>
+    </div>
+
+    <section>
+      <div class="section-title">01 — Архитектура проекта</div>
+      <div class="arch-grid">
+        <div class="arch-item">
+          <div class="arch-item-title">⚡ Backend (FastAPI)</div>
+          <ul>
+            <li>main.py — ядро приложения</li>
+            <li>uvicorn — ASGI сервер</li>
+            <li>Pydantic v2 — валидация</li>
+            <li>aiohttp — async HTTP</li>
+            <li>In-memory хранилище чатов</li>
+          </ul>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-title">🤖 AI слой (актуально)</div>
+          <ul>
+            <li>Gemini 2.5 Flash (Pro)</li>
+            <li>Gemini 2.5 Flash Lite</li>
+            <li>GPT-OSS-120B (OpenRouter)</li>
+            <li>FLUX.1-dev (HuggingFace)</li>
+            <li>Gemini 2.0 Flash (img gen)</li>
+          </ul>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-title">📄 Обработка файлов</div>
+          <ul>
+            <li>PDF → PyPDF2</li>
+            <li>DOCX → python-docx</li>
+            <li>XLSX/CSV → pandas</li>
+            <li>ODT/ODS → odfpy</li>
+            <li>RTF → striprtf</li>
+          </ul>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-title">🌐 Frontend</div>
+          <ul>
+            <li>Vanilla HTML/CSS/JS</li>
+            <li>static/index.html</li>
+            <li>marked.js (markdown)</li>
+            <li>MathJax (LaTeX)</li>
+            <li>Starry-sky CSS эффект</li>
+          </ul>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-title">🔍 DeepSearch</div>
+          <ul>
+            <li>Google Custom Search API</li>
+            <li>Результаты → Gemini</li>
+            <li>Markdown форматирование</li>
+            <li>История чатов</li>
+          </ul>
+        </div>
+        <div class="arch-item">
+          <div class="arch-item-title">✅ Исправлено</div>
+          <ul>
+            <li>Убраны Grok-4 (OpenRouter)</li>
+            <li>Убран Dolphin Mistral</li>
+            <li>GPT-OSS → 120b версия</li>
+            <li>Обновлён model_map</li>
+            <li>Обновлён /models endpoint</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">02 — Уязвимости и проблемы</div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon icon-danger">🔐</div>
+          <div>
+            <div class="card-title">Нет валидации API ключей при старте</div>
+            <span class="tag tag-danger">Критично</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <strong>Проблема:</strong> Если ключ в .env не задан — приложение молча стартует и падает только при первом запросе к AI. Непонятная ошибка вместо ясного сообщения.<br><br>
+          <strong>Риск:</strong> Утечка ключей в git, отсутствие ключа не обнаруживается до первого пользователя.
+          <div class="code-block"><span class="danger-line"># ❌ Сейчас — ключ может быть None, ошибка придёт позже</span>
+GOOGLE_GEMINI_API_KEY = os.getenv("GOOGLE_GEMINI_API_KEY")
+genai.configure(api_key=GOOGLE_GEMINI_API_KEY)  <span class="comment"># None → тихая ошибка</span>
+
+<span class="good-line"># ✅ Нужно — валидация при старте</span>
+<span class="key">if not</span> GOOGLE_GEMINI_API_KEY:
+    raise ValueError(<span class="val">"GOOGLE_GEMINI_API_KEY не задан в .env!"</span>)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon icon-danger">🛡️</div>
+          <div>
+            <div class="card-title">CORS разрешён для всех источников (allow_origins=["*"])</div>
+            <span class="tag tag-danger">Критично</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <strong>Проблема:</strong> Любой сайт в интернете может делать запросы к вашему API и тратить платные токены.
+          <div class="code-block"><span class="danger-line"># ❌ Опасно</span>
+app.add_middleware(CORSMiddleware, allow_origins=[<span class="val">"*"</span>], ...)
+
+<span class="good-line"># ✅ Безопасно</span>
+ALLOWED = os.getenv(<span class="val">"ALLOWED_ORIGINS"</span>, <span class="val">"http://localhost:8000"</span>).split(<span class="val">","</span>)
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED, ...)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon icon-danger">💾</div>
+          <div>
+            <div class="card-title">История чатов и файлы хранятся только в RAM</div>
+            <span class="tag tag-danger">Критично</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <strong>Проблема:</strong> <code>chat_histories = {}</code> сбрасывается при каждом рестарте. Временные файлы через <code>tempfile</code> никогда не удаляются — утечка диска.
+          <div class="code-block"><span class="danger-line"># ❌ Файлы копятся бесконечно, чаты теряются</span>
+uploaded_files = {}
+with tempfile.NamedTemporaryFile(delete=False, ...) as tmp:
+    <span class="comment"># delete=False → файл остаётся навсегда</span>
+
+<span class="good-line"># ✅ Добавить cleanup задачу</span>
+from fastapi import BackgroundTasks
+<span class="key">async def</span> cleanup_file(path: str):
+    await asyncio.sleep(<span class="val">3600</span>)  <span class="comment"># удалить через 1 час</span>
+    os.unlink(path)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon icon-warn">📏</div>
+          <div>
+            <div class="card-title">Нет ограничения размера загружаемых файлов</div>
+            <span class="tag tag-warn">Высокий</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <strong>Проблема:</strong> Загрузка файла 1GB+ вызовет OOM (Out of Memory) и упадёт весь сервер.
+          <div class="code-block"><span class="good-line"># ✅ Middleware для проверки размера</span>
+@app.middleware(<span class="val">"http"</span>)
+<span class="key">async def</span> limit_upload_size(request: Request, call_next):
+    MAX = <span class="val">10 * 1024 * 1024</span>  <span class="comment"># 10 MB</span>
+    cl = request.headers.get(<span class="val">"content-length"</span>)
+    <span class="key">if</span> cl <span class="key">and</span> int(cl) > MAX:
+        <span class="key">return</span> JSONResponse(status_code=<span class="val">413</span>, content={<span class="val">"detail"</span>: <span class="val">"Файл > 10MB"</span>})
+    <span class="key">return await</span> call_next(request)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon icon-warn">🔑</div>
+          <div>
+            <div class="card-title">Нет аутентификации и rate limiting на endpoints</div>
+            <span class="tag tag-warn">Высокий</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <strong>Проблема:</strong> Любой знающий IP:8000 может бесплатно использовать ваши платные API ключи без каких-либо ограничений.
+          <div class="code-block"><span class="good-line"># ✅ pip install slowapi</span>
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+@app.post(<span class="val">"/veronica"</span>)
+@limiter.limit(<span class="val">"20/minute"</span>)
+<span class="key">async def</span> ask_veronica(request: Request, body: ChatRequest): ...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon icon-warn">📦</div>
+          <div>
+            <div class="card-title">Дублирование marked.js и MathJax в index.html</div>
+            <span class="tag tag-warn">Средний</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <strong>Проблема:</strong> В <code>index.html</code> подключаются две разные версии marked.js (v4.0.0 и v14.1.2) и MathJax загружается дважды. Конфликт версий + двойная нагрузка.
+          <div class="code-block"><span class="danger-line">&lt;script src="marked@4.0.0/marked.min.js"&gt;&lt;/script&gt;    &lt;!-- дубль 1 --&gt;</span>
+<span class="danger-line">&lt;script src="marked@14.1.2/marked.umd.min.js"&gt;&lt;/script&gt;  &lt;!-- дубль 2 --&gt;</span>
+<span class="danger-line">&lt;script src="mathjax@3/tex-mml-chtml.js"&gt;&lt;/script&gt;       &lt;!-- дубль 1 --&gt;</span>
+<span class="danger-line">&lt;script src="mathjax@3/tex-mml-chtml.js?ext..."&gt;&lt;/script&gt; &lt;!-- дубль 2 --&gt;</span>
+<span class="good-line">&lt;!-- ✅ Оставить только одну версию каждой библиотеки --&gt;</span>
+&lt;script src="https://cdn.jsdelivr.net/npm/marked@14.1.2/marked.min.js"&gt;&lt;/script&gt;</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon icon-green">✅</div>
+          <div>
+            <div class="card-title">Лишние OpenRouter модели убраны</div>
+            <span class="tag tag-done">Исправлено</span>
+          </div>
+        </div>
+        <div class="card-body">
+          Из <code>main.py</code> удалены <code>OPENROUTER_GROK_MODEL</code> (grok-4-fast) и <code>OPENROUTER_DOLPHIN_MODEL</code> (dolphin-mistral-24b). Модель обновлена с <code>gpt-oss-20b</code> до <strong>gpt-oss-120b</strong>. Обновлены: model_map в <code>ask_veronica</code>, условие в <code>get_ai_response</code>, список в <code>/veronica/models</code>.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">03 — Оценка качества кода</div>
+      <div class="score-section">
+        <div class="score-row"><span class="score-label">Функциональность</span><div class="score-bar-bg"><div class="score-bar-fill" style="width:88%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div><span class="score-val c-purple">88%</span></div>
+        <div class="score-row"><span class="score-label">Читаемость кода</span><div class="score-bar-bg"><div class="score-bar-fill" style="width:75%;background:linear-gradient(90deg,var(--info),var(--accent))"></div></div><span class="score-val c-info">75%</span></div>
+        <div class="score-row"><span class="score-label">Безопасность</span><div class="score-bar-bg"><div class="score-bar-fill" style="width:32%;background:linear-gradient(90deg,var(--danger),var(--warn))"></div></div><span class="score-val c-danger">32%</span></div>
+        <div class="score-row"><span class="score-label">Обработка ошибок</span><div class="score-bar-bg"><div class="score-bar-fill" style="width:60%;background:linear-gradient(90deg,var(--warn),var(--accent3))"></div></div><span class="score-val c-warn">60%</span></div>
+        <div class="score-row"><span class="score-label">Производительность</span><div class="score-bar-bg"><div class="score-bar-fill" style="width:50%;background:linear-gradient(90deg,var(--accent2),var(--warn))"></div></div><span class="score-val c-pink">50%</span></div>
+        <div class="score-row"><span class="score-label">Масштабируемость</span><div class="score-bar-bg"><div class="score-bar-fill" style="width:40%;background:linear-gradient(90deg,var(--accent3),var(--info))"></div></div><span class="score-val c-green">40%</span></div>
+        <div class="score-row"><span class="score-label">Тестируемость</span><div class="score-bar-bg"><div class="score-bar-fill" style="width:15%;background:linear-gradient(90deg,var(--danger),var(--accent2))"></div></div><span class="score-val c-danger">15%</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== TAB: PLAN ===================== -->
+  <div id="tab-plan" class="tab-content">
+
+    <section>
+      <div class="section-title">Недоделанные части (из последнего промта)</div>
+      <p style="font-size:0.84rem; color:var(--text-dim); margin-bottom:32px; font-family:'JetBrains Mono',monospace;">
+        // Анализ выполнен на основе реального кода main.py + index.html по состоянию на текущий момент.
+      </p>
+
+      <div class="roadmap">
+
+        <!-- UNDONE 1 -->
+        <div class="roadmap-item phase-fix-sec">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">U1</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">❌ Greeting не реагирует на смену языка</div>
+              <div class="roadmap-meta"><span class="tag tag-danger">Не сделано</span><span class="effort-pill">~15 мин</span></div>
+            </div>
+            <div class="roadmap-desc">
+              В <code>index.html</code> приветствие генерируется хардкодом на английском:
+              <code>greetingText.innerHTML = `&lt;span&gt;Good ${timeOfDay}&lt;/span&gt;`</code> — это происходит после <code>applyI18n()</code>, перезатирая перевод.
+              i18n-система и словари (<code>goodMorning / goodAfternoon / goodEvening</code>) уже готовы, но вызов происходит до установки <code>currentLang</code>, а не после.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">→</span> Убрать хардкод <code>Good ${timeOfDay}</code> из DOMContentLoaded</div>
+              <div class="step-item"><span class="step-icon">→</span> Greeting уже генерируется внутри <code>applyI18n()</code> через <code>greetingTimeEl</code> — оставить только его</div>
+              <div class="step-item"><span class="step-icon">→</span> Убедиться что <code>applyLang(currentLang)</code> вызывается после рендера greeting-элемента</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNDONE 2 -->
+        <div class="roadmap-item phase-fix-sec">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">U2</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">❌ Upgrade Plan — дублирование (modal + страница)</div>
+              <div class="roadmap-meta"><span class="tag tag-danger">Не сделано</span><span class="effort-pill">~20 мин</span></div>
+            </div>
+            <div class="roadmap-desc">
+              В <code>index.html</code> до сих пор существует <code>#upgrade-modal</code> со старым содержимым (только Free и Pro, цены $0/$20).
+              При этом кнопка "Upgrade plan" теперь редиректит на <code>/upgrade</code> (отдельная страница). Старый modal мёртвый код — занимает место и может запутать при поддержке.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">→</span> Удалить секцию <code>&lt;!-- UPGRADE MODAL --&gt;</code> из index.html полностью</div>
+              <div class="step-item"><span class="step-icon">→</span> Убедиться что upgrade.html содержит все три плана (Free, Pro, Max) как на скриншоте</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNDONE 3 -->
+        <div class="roadmap-item phase-fix-code">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">U3</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">❌ Google OAuth — не настроены .env переменные (GOOGLE_OAUTH_CLIENT_ID)</div>
+              <div class="roadmap-meta"><span class="tag tag-warn">Частично</span><span class="effort-pill">~1 час</span></div>
+            </div>
+            <div class="roadmap-desc">
+              Бэкенд Google OAuth <strong>полностью написан</strong>: <code>/auth/google</code>, <code>/auth/google/callback</code>, <code>db_get_or_create_google_user()</code> — всё есть.
+              Фронт тоже готов: кнопка "Sign in with Google" → <code>/auth/google</code> редирект → JWT в URL параметре → <code>saveAuth()</code>.
+              Но реально не работает до тех пор, пока <code>GOOGLE_OAUTH_CLIENT_ID</code> и <code>GOOGLE_OAUTH_CLIENT_SECRET</code> не прописаны в <code>.env</code> и не настроен Authorized redirect URI в Google Cloud Console.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">→</span> Зайти в <a href="https://console.cloud.google.com" style="color:var(--accent)">console.cloud.google.com</a> → APIs & Services → Credentials</div>
+              <div class="step-item"><span class="step-icon">→</span> Создать OAuth 2.0 Client ID, добавить redirect URI: <code>http://localhost:8000/auth/google/callback</code></div>
+              <div class="step-item"><span class="step-icon">→</span> Добавить в .env: <code>GOOGLE_OAUTH_CLIENT_ID=...</code> и <code>GOOGLE_OAUTH_CLIENT_SECRET=...</code></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNDONE 4 -->
+        <div class="roadmap-item phase-fix-code">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">U4</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">❌ Rename чата не сохраняется на сервере</div>
+              <div class="roadmap-meta"><span class="tag tag-warn">Частично</span><span class="effort-pill">~30 мин</span></div>
+            </div>
+            <div class="roadmap-desc">
+              В <code>index.html</code> в контекстном меню чата кнопка "Rename" редактирует название только визуально (в UI), но <strong>не отправляет запрос к API</strong>.
+              Комментарий в коде прямо говорит: <code>// Здесь можно добавить запрос к API для сохранения нового имени</code>.
+              В <code>main.py</code> нет endpoint <code>PATCH /chats/{id}</code> или <code>PUT /chats/{id}/rename</code>.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">→</span> Добавить в main.py endpoint <code>PATCH /chats/{chat_id}</code> с обновлением title в БД</div>
+              <div class="step-item"><span class="step-icon">→</span> В index.html в saveBtn.addEventListener добавить fetch к этому endpoint</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNDONE 5 -->
+        <div class="roadmap-item phase-fix-code">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">U5</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">❌ Language modal показывает 8 языков, но i18n поддерживает только 3</div>
+              <div class="roadmap-meta"><span class="tag tag-warn">Непоследовательно</span><span class="effort-pill">~30 мин</span></div>
+            </div>
+            <div class="roadmap-desc">
+              В language modal отображаются 8 языков (EN, RU, UZ, DE, FR, ES, ZH, AR, TR, JA), но объект <code>I18N</code> содержит только <code>en</code>, <code>ru</code>, <code>uz</code>.
+              При выборе DE/FR/ES/ZH/AR/TR/JA — <code>t(key)</code> fallback'ится на EN, но lang-item для них подсвечивается как "активный" — визуально вводит в заблуждение.
+              Задача из промта: <strong>пока только EN, RU, UZ</strong> — значит лишние языки нужно убрать из modal.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">→</span> В lang-list оставить только 3 кнопки: EN, RU, UZ</div>
+              <div class="step-item"><span class="step-icon">→</span> Остальные языки скрыть или удалить</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end недоделанные -->
+
+      <div class="section-title" style="margin-top:48px">Доделанные части (из того же промта)</div>
+      <p style="font-size:0.84rem; color:var(--text-dim); margin-bottom:32px; font-family:'JetBrains Mono',monospace;">
+        // Подтверждено наличием кода в main.py и index.html
+      </p>
+
+      <div class="roadmap">
+
+        <!-- STEP 1 -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">01</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Убрать лишние OpenRouter модели</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Уже сделано</span>
+                <span class="effort-pill">~0 мин</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Grok-4 и Dolphin Mistral удалены из <code>main.py</code>. Модель обновлена с <code>gpt-oss-20b</code> до <strong>openai/gpt-oss-120b:free</strong>. Обновлены все три места где они упоминались: константы, model_map, /models endpoint.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> Удалены OPENROUTER_GROK_MODEL и OPENROUTER_DOLPHIN_MODEL</div>
+              <div class="step-item"><span class="step-icon">✅</span> OPENROUTER_GPT_OSS_MODEL = "openai/gpt-oss-120b:free"</div>
+              <div class="step-item"><span class="step-icon">✅</span> Обновлён model_map в ask_veronica()</div>
+              <div class="step-item"><span class="step-icon">✅</span> Обновлён список в get_ai_response() и /veronica/models</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">02</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Удалить дубли marked.js и MathJax в index.html</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Сделано</span>
+                <span class="effort-pill">~5 мин</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Из <code>static/index.html</code> удалены дублирующиеся теги: убрана строка с marked@4.0.0 (оставлена v14.1.2) и убран дублирующий тег MathJax с параметром <code>?extensions=</code>. Конфликт версий устранён, загрузка страницы ускорена.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> Удалена строка с marked@4.0.0 (оставлена marked@14.1.2)</div>
+              <div class="step-item"><span class="step-icon">✅</span> Удалён дублирующий тег MathJax с ?extensions=...</div>
+              <div class="step-item"><span class="step-icon">✅</span> Оставлен один чистый тег MathJax с id="MathJax-script"</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">03</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Добавить очистку временных файлов</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Сделано</span>
+                <span class="effort-pill">~10 мин</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Добавлена асинхронная функция <code>cleanup_file(path, file_id)</code> с <code>asyncio.sleep(FILE_TTL_SECONDS)</code>. Запускается через <code>asyncio.create_task()</code> после каждого upload (изображения, документы, генерация через HuggingFace и Gemini). Время жизни файла настраивается через <code>FILE_TTL_SECONDS</code> в .env (по умолчанию 3600 сек).
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> Добавлен import asyncio в main.py</div>
+              <div class="step-item"><span class="step-icon">✅</span> Создана async def cleanup_file(path, file_id) с asyncio.sleep(FILE_TTL_SECONDS)</div>
+              <div class="step-item"><span class="step-icon">✅</span> asyncio.create_task(cleanup_file(...)) добавлен в upload_image, upload_document, generate_image (Gemini + HuggingFace)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="roadmap-item phase-fix-sec">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">04</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Валидация API ключей при старте приложения</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Сделано</span>
+                <span class="effort-pill">~10 мин</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Логика валидации была добавлена предыдущим ИИ, но <strong style="color:var(--danger)">был пропущен <code>import os</code></strong> — сервер вообще не запускался (NameError на первой строке). Исправлено: добавлен <code>import os</code> в начало файла, убран случайно появившийся дубль.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> Добавлен import os (отсутствовал — сервер падал при старте)</div>
+              <div class="step-item"><span class="step-icon">✅</span> Блок _REQUIRED_KEYS с raise ValueError для обязательных ключей работает</div>
+              <div class="step-item"><span class="step-icon">✅</span> logging.warning для опциональных OPENROUTER_API_KEY и HUGGING_FACE_API_KEY</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="roadmap-item phase-fix-sec">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">05</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Ограничить CORS конкретными доменами</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Сделано</span>
+                <span class="effort-pill">~10 мин</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              <code>allow_origins=["*"]</code> заменён на <code>ALLOWED_ORIGINS</code> из переменной окружения. Дефолт — <code>localhost:8000</code> и <code>127.0.0.1:8000</code>. Добавить свой домен можно через <code>ALLOWED_ORIGINS=https://yourdomain.com</code> в .env.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> ALLOWED_ORIGINS читается из os.getenv() с fallback на localhost</div>
+              <div class="step-item"><span class="step-icon">✅</span> allow_origins=["*"] заменён на allow_origins=ALLOWED_ORIGINS</div>
+              <div class="step-item"><span class="step-icon">✅</span> Поддерживается список через запятую в .env</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 6 -->
+        <div class="roadmap-item phase-fix-sec">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">06</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Ограничение размера файлов + Rate Limiting</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Сделано</span>
+                <span class="effort-pill">~20 мин</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              slowapi подключён и работает. Middleware <code>limit_upload_size</code> ограничивает загрузку файлов (по умолчанию 10MB, настраивается через <code>MAX_UPLOAD_SIZE_MB</code> в .env). <strong style="color:var(--danger)">Найдено и исправлено:</strong> <code>python-dotenv</code>, <code>google-generativeai</code> и <code>certifi</code> отсутствовали в <code>requirements.txt</code> — добавлены.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> slowapi==0.1.9 в requirements.txt, Limiter инициализирован</div>
+              <div class="step-item"><span class="step-icon">✅</span> @limiter.limit на /veronica (30/min), /deepsearch (15/min), /generate-image (10/min)</div>
+              <div class="step-item"><span class="step-icon">✅</span> middleware limit_upload_size с порогом MAX_UPLOAD_SIZE_MB (дефолт 10MB)</div>
+              <div class="step-item"><span class="step-icon">✅</span> Добавлены python-dotenv, google-generativeai, certifi в requirements.txt</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 7 -->
+        <div class="roadmap-item phase-fix-code">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">07</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Персистентное хранилище чатов (SQLite)</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Выполнено</span>
+                <span class="effort-pill">~1 день</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Реализовано полноценное SQLite-хранилище через <strong>aiosqlite</strong>. Созданы таблицы <code>users</code>, <code>chats</code>, <code>messages</code>. Добавлены async CRUD-функции: <code>db_create_chat</code>, <code>db_get_chats</code>, <code>db_add_message</code>, <code>db_get_messages</code>, <code>db_delete_chat</code>. БД инициализируется при старте через <code>on_startup</code>. Чаты теперь переживают рестарт сервера.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> aiosqlite>=0.20.0 добавлен в requirements.txt</div>
+              <div class="step-item"><span class="step-icon">✅</span> Таблицы users, chats, messages с FOREIGN KEY</div>
+              <div class="step-item"><span class="step-icon">✅</span> init_db() вызывается при startup приложения</div>
+              <div class="step-item"><span class="step-icon">✅</span> REST endpoints: GET/POST /chats, GET/POST /chats/{id}/messages, DELETE /chats/{id}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 8 -->
+        <div class="roadmap-item phase-fix-code">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col">
+            <div class="roadmap-circle">08</div>
+          </div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Аутентификация пользователей (JWT)</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-done">Выполнено</span>
+                <span class="effort-pill">~1–2 дня</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Реализована полноценная JWT-аутентификация через <strong>python-jose</strong> и <strong>passlib[bcrypt]</strong>. Пароли хранятся в виде bcrypt-хеша. Токен действует 24 часа (настраивается через <code>JWT_EXPIRE_MINUTES</code> в .env). Dependency <code>get_current_user</code> защищает все chat-endpoints. Добавлен endpoint <code>GET /auth/me</code> для проверки токена.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> python-jose[cryptography] и passlib[bcrypt] добавлены в requirements.txt</div>
+              <div class="step-item"><span class="step-icon">✅</span> POST /auth/register — регистрация с валидацией (username ≥3, password ≥6)</div>
+              <div class="step-item"><span class="step-icon">✅</span> POST /auth/login — вход, возвращает Bearer JWT токен</div>
+              <div class="step-item"><span class="step-icon">✅</span> GET /auth/me — текущий пользователь (требует токен)</div>
+              <div class="step-item"><span class="step-icon">✅</span> Все /chats/* endpoints защищены через Depends(get_current_user)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE A -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">✓A</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Google OAuth — бэкенд полностью реализован</div>
+              <div class="roadmap-meta"><span class="tag tag-done">Сделано</span></div>
+            </div>
+            <div class="roadmap-desc">
+              В <code>main.py</code> написаны: <code>GET /auth/google</code> (редирект на Google), <code>GET /auth/google/callback</code> (обмен кода на токен, получение userinfo),
+              <code>db_get_or_create_google_user()</code> (найти или создать пользователя по google_id/email).
+              В БД добавлены поля <code>google_id</code> и <code>avatar</code> с автомиграцией. JWT выдаётся и передаётся на фронт через URL-параметр <code>?auth_token=...</code>.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> /auth/google и /auth/google/callback в main.py</div>
+              <div class="step-item"><span class="step-icon">✅</span> db_get_or_create_google_user() с upsert логикой</div>
+              <div class="step-item"><span class="step-icon">✅</span> Таблица users расширена: google_id, avatar с ALTER TABLE миграцией</div>
+              <div class="step-item"><span class="step-icon">✅</span> Фронт: кнопка → редирект → saveAuth() → updateProfileUI() с аватаром</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE B -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">✓B</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ История чатов привязана к Google аккаунту</div>
+              <div class="roadmap-meta"><span class="tag tag-done">Сделано</span></div>
+            </div>
+            <div class="roadmap-desc">
+              Все <code>/chats/*</code> endpoints защищены через <code>Depends(get_current_user)</code>.
+              Чаты в SQLite хранятся с <code>user_id</code> FK. При загрузке <code>loadChatHistory()</code> фронт передаёт Bearer токен через <code>getAuthHeaders()</code>.
+              Анонимные пользователи видят пустой список (401 → graceful fallback).
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> chats.user_id FOREIGN KEY → users.id</div>
+              <div class="step-item"><span class="step-icon">✅</span> Все /chats/* требуют Bearer JWT</div>
+              <div class="step-item"><span class="step-icon">✅</span> Фронт передаёт getAuthHeaders() при каждом запросе к чатам</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE C -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">✓C</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Отдельная страница Upgrade Plan (/upgrade)</div>
+              <div class="roadmap-meta"><span class="tag tag-done">Сделано</span></div>
+            </div>
+            <div class="roadmap-desc">
+              Создан файл <code>static/upgrade.html</code> — полноценная страница с тремя тарифами (Free / Pro / Max),
+              переключателем Monthly/Yearly, кнопкой "← Back". Кнопка "Upgrade plan" в профиль-попапе теперь открывает <code>/upgrade</code> в новой вкладке.
+              В <code>main.py</code> добавлен endpoint <code>GET /upgrade</code> возвращающий этот HTML.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> static/upgrade.html с Free / Pro / Max планами</div>
+              <div class="step-item"><span class="step-icon">✅</span> Переключатель Monthly ↔ Yearly с пересчётом цен</div>
+              <div class="step-item"><span class="step-icon">✅</span> GET /upgrade endpoint в main.py</div>
+              <div class="step-item"><span class="step-icon">✅</span> pp-upgrade кнопка → window.open('/upgrade', '_blank')</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE D -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">✓D</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ i18n система (EN / RU / UZ) реализована</div>
+              <div class="roadmap-meta"><span class="tag tag-done">Сделано</span></div>
+            </div>
+            <div class="roadmap-desc">
+              В <code>index.html</code> реализована полная i18n система: объект <code>I18N</code> с тремя словарями, функции <code>t(key)</code> и <code>applyI18n()</code>.
+              Все элементы интерфейса имеют атрибуты <code>data-i18n</code>. Выбранный язык сохраняется в <code>localStorage</code>.
+              Язык по умолчанию — English. Language modal с кнопками переключения готов.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> I18N объект: en / ru / uz со всеми ключами интерфейса</div>
+              <div class="step-item"><span class="step-icon">✅</span> applyI18n() обходит все [data-i18n] элементы</div>
+              <div class="step-item"><span class="step-icon">✅</span> Язык сохраняется в localStorage('veronicaLang')</div>
+              <div class="step-item"><span class="step-icon">✅</span> applyLang() вызывается при старте и при выборе языка</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE E -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">✓E</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Боковая панель с историей чатов — структура готова</div>
+              <div class="roadmap-meta"><span class="tag tag-done">Сделано</span></div>
+            </div>
+            <div class="roadmap-desc">
+              Sidebar реализован со всеми нужными элементами: логотип, кнопки "New chat" и "Search chats", поиск по чатам,
+              секция "Recent" с динамическим списком, user-info блок с аватаром в нижней части.
+              Контекстное меню по чату (Rename / Delete / Share). Поиск фильтрует чаты по названию.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> sidebar-actions-row с New chat и Search chats</div>
+              <div class="step-item"><span class="step-icon">✅</span> Динамический chat-list с loadChatHistory()</div>
+              <div class="step-item"><span class="step-icon">✅</span> user-info блок с аватаром Google + имя + план</div>
+              <div class="step-item"><span class="step-icon">✅</span> Поиск по названию чата через filterChats()</div>
+              <div class="step-item"><span class="step-icon">✅</span> Контекстное меню: Rename (UI) / Delete (API) / Share (coming soon)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE F -->
+        <div class="roadmap-item phase-fix-quick">
+          <div class="roadmap-num-col"><div class="roadmap-circle">✓F</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">✅ Streaming SSE (D1) — реализован и интегрирован</div>
+              <div class="roadmap-meta"><span class="tag tag-done">Сделано</span></div>
+            </div>
+            <div class="roadmap-desc">
+              В <code>main.py</code> добавлен <code>GET /veronica/stream</code> с <code>StreamingResponse</code>.
+              Фронт использует <code>EventSource</code>, токены дописываются в реальном времени, симулятор <code>typeText()</code> удалён.
+              MathJax.typesetPromise() вызывается по завершении стрима.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">✅</span> GET /veronica/stream с StreamingResponse(text/event-stream)</div>
+              <div class="step-item"><span class="step-icon">✅</span> Фронт: EventSource → append tokens → [DONE] → finalize</div>
+              <div class="step-item"><span class="step-icon">✅</span> Markdown + MathJax рендер после завершения стрима</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end roadmap -->
+    </section>
+  </div>
+
+  <!-- ===================== TAB: IDEAS ===================== -->
+  <div id="tab-ideas" class="tab-content">
+
+    <section>
+      <div class="section-title">Детализированный план развития по шагам</div>
+      <p style="font-size:0.84rem; color:var(--text-dim); margin-bottom:32px; font-family:'JetBrains Mono',monospace;">
+        // Каждый пункт разбит на конкретные шаги с файлами, командами и ожидаемым результатом.
+      </p>
+
+      <div class="roadmap">
+
+        <!-- DEV 1: STREAMING SSE -->
+        <div class="roadmap-item phase-dev">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">D1</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">⚡ Streaming ответов (SSE)</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-purple">Приоритет 1</span>
+                <span class="effort-pill">~4–6 часов</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Токены приходят в браузер по мере генерации, как в ChatGPT. Gemini SDK поддерживает streaming через <code>generate_content(..., stream=True)</code>. Фронтенд получает куски через <code>EventSource</code> и дописывает текст в реальном времени.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">1</span> <strong>Бэкенд — новый endpoint</strong>: добавить <code>GET /veronica/stream</code> в <code>main.py</code>. Вернуть <code>StreamingResponse(generator(), media_type="text/event-stream")</code>. Принимать query через query-параметры (GET, не POST — EventSource не умеет POST).</div>
+              <div class="step-item"><span class="step-icon">2</span> <strong>Gemini streaming</strong>: вызвать <code>model.generate_content(prompt, stream=True)</code>, итерировать по <code>chunk.text</code>, yield каждый кусок как <code>data: {json}\n\n</code>. В конце yield <code>data: [DONE]\n\n</code>.</div>
+              <div class="step-item"><span class="step-icon">3</span> <strong>OpenRouter streaming</strong>: в <code>_call_openrouter()</code> добавить параметр <code>stream=True</code> в тело запроса. Читать aiohttp response построчно через <code>async for line in resp.content</code>. Парсить SSE-строки вида <code>data: {...}</code>.</div>
+              <div class="step-item"><span class="step-icon">4</span> <strong>Фронтенд — EventSource</strong>: в <code>static/index.html</code> заменить <code>fetch('/veronica', {method:'POST'})</code> на <code>new EventSource('/veronica/stream?query=...')</code>. Создать пустой div для ответа до прихода первого токена.</div>
+              <div class="step-item"><span class="step-icon">5</span> <strong>Append-логика</strong>: в обработчике <code>es.onmessage</code> — парсить JSON, дописывать <code>chunk.text</code> в innerHTML. При получении <code>[DONE]</code> — закрыть EventSource, запустить MathJax.typesetPromise() на финальный элемент.</div>
+              <div class="step-item"><span class="step-icon">6</span> <strong>Убрать эффект печати</strong>: имеющийся <code>typeText()</code> симулирует стриминг через setTimeout. После внедрения настоящего SSE — удалить его, чтобы не было двойного эффекта. Оставить Markdown-парсинг в конце через <code>marked.parse()</code>.</div>
+              <div class="step-item"><span class="step-icon">7</span> <strong>Обработка ошибок</strong>: добавить <code>es.onerror</code> — показывать сообщение об ошибке, закрывать соединение. Добавить таймаут: если за 30 сек нет данных — закрыть и показать fallback.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEV 2: DOCKER -->
+        <div class="roadmap-item phase-dev">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">D2</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">🐳 Docker + Production деплой</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-purple">Приоритет 2</span>
+                <span class="effort-pill">~1–2 дня</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Упаковать проект в Docker-контейнер и выложить на сервер. После этого Veronica работает 24/7 в сети, а не только на вашем ноутбуке.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">1</span> <strong>Dockerfile</strong>: создать в корне проекта. Базовый образ — <code>python:3.12-slim</code>. WORKDIR /app. COPY requirements.txt → pip install. COPY . . CMD uvicorn main:app --host 0.0.0.0 --port 8000. Проверить: <code>docker build -t veronica .</code></div>
+              <div class="step-item"><span class="step-icon">2</span> <strong>.dockerignore</strong>: добавить <code>.env</code>, <code>.git</code>, <code>__pycache__</code>, <code>*.pkl</code>, <code>veronica.db</code>. БД и секреты не должны попасть в образ.</div>
+              <div class="step-item"><span class="step-icon">3</span> <strong>docker-compose.yml</strong>: сервис <code>veronica</code> с build: . и <code>env_file: .env</code>. Volumes: <code>./data:/app/data</code> для персистентности БД. ports: 8000:8000. restart: unless-stopped.</div>
+              <div class="step-item"><span class="step-icon">4</span> <strong>Nginx reverse proxy</strong>: добавить сервис nginx в docker-compose. Конфиг: proxy_pass к veronica:8000. <code>client_max_body_size 15m</code> (больше MAX_UPLOAD_SIZE). gzip on для статики.</div>
+              <div class="step-item"><span class="step-icon">5</span> <strong>SSL через Certbot</strong>: добавить сервис certbot в docker-compose. Volumes: <code>./certbot/conf:/etc/letsencrypt</code>. Запустить <code>certbot certonly --webroot</code> для вашего домена. Настроить cron на <code>certbot renew</code> каждые 60 дней.</div>
+              <div class="step-item"><span class="step-icon">6</span> <strong>Выбор хостинга</strong>: DigitalOcean Droplet ($6/мес, 1GB RAM) или Hetzner CX11 (€3.29/мес). Создать VPS, установить Docker + docker-compose, скопировать проект через <code>git clone</code> + <code>scp .env</code>.</div>
+              <div class="step-item"><span class="step-icon">7</span> <strong>GitHub Actions CI/CD</strong>: создать <code>.github/workflows/deploy.yml</code>. Триггер: push в main. Шаги: SSH на сервер → git pull → docker-compose up -d --build. Секреты (SSH ключ, IP сервера) добавить в Settings → Secrets.</div>
+              <div class="step-item"><span class="step-icon">8</span> <strong>Мониторинг</strong>: добавить <code>/health</code> endpoint (уже есть!) в UptimeRobot — бесплатный пинг каждые 5 минут с оповещением в Telegram при падении. Логи: <code>docker-compose logs -f veronica</code>.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEV 3: PWA -->
+        <div class="roadmap-item phase-dev2">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">D3</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">🌍 PWA — Установка на телефон</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-pink">Приоритет 3</span>
+                <span class="effort-pill">~3–4 часа</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Progressive Web App превращает сайт в «нативное» приложение: иконка на рабочем столе, работа офлайн (из кэша), возможность push-уведомлений. Очень мало кода — огромный эффект на восприятие продукта.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">1</span> <strong>manifest.json</strong>: создать <code>static/manifest.json</code>. Поля: name, short_name, start_url, display: "standalone", theme_color, background_color, icons (массив PNG 192×192 и 512×512 в <code>static/icons/</code>). Иконки можно сгенерировать через любой favicon-генератор.</div>
+              <div class="step-item"><span class="step-icon">2</span> <strong>Подключить manifest</strong>: в <code>static/index.html</code> добавить в &lt;head&gt;: <code>&lt;link rel="manifest" href="/static/manifest.json"&gt;</code> и <code>&lt;meta name="theme-color" content="#5759D9"&gt;</code>.</div>
+              <div class="step-item"><span class="step-icon">3</span> <strong>Service Worker — файл</strong>: создать <code>static/sw.js</code>. В install-событии кэшировать: <code>index.html</code>, CSS, JS-библиотеки (marked, MathJax), иконки. Стратегия: Cache First для статики, Network First для API-запросов.</div>
+              <div class="step-item"><span class="step-icon">4</span> <strong>Регистрация SW</strong>: в конце <code>index.html</code> добавить <code>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js')</code>. Раздавать sw.js через FastAPI как статику.</div>
+              <div class="step-item"><span class="step-icon">5</span> <strong>Офлайн-страница</strong>: создать <code>static/offline.html</code> с сообщением «Нет подключения к интернету». В fetch-хендлере SW: при ошибке сети → вернуть offline.html вместо API-ответов.</div>
+              <div class="step-item"><span class="step-icon">6</span> <strong>Проверка</strong>: открыть Chrome DevTools → Lighthouse → запустить аудит PWA. Должно быть 100/100. Протестировать «Добавить на главный экран» на Android и iOS.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEV 4: VOICE -->
+        <div class="roadmap-item phase-dev2">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">D4</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">🎙️ Голосовой ввод и TTS</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-pink">Приоритет 4</span>
+                <span class="effort-pill">~1 день</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Пользователь говорит — Veronica слушает и отвечает голосом. Web Speech API работает прямо в браузере без бэкенда (для ввода). TTS через Gemini или браузерный <code>speechSynthesis</code>.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">1</span> <strong>Кнопка микрофона</strong>: добавить кнопку 🎙 рядом с полем ввода в <code>index.html</code>. CSS: анимация пульсирования во время записи (красная точка + ripple-эффект). Атрибут <code>title="Нажми и говори"</code>.</div>
+              <div class="step-item"><span class="step-icon">2</span> <strong>Web Speech API — ввод</strong>: в JS создать <code>const recog = new SpeechRecognition()</code>. Параметры: <code>lang='ru-RU'</code>, <code>continuous=false</code>, <code>interimResults=true</code>. В <code>onresult</code> — вставлять текст в поле ввода в реальном времени. При <code>onend</code> — авто-отправка.</div>
+              <div class="step-item"><span class="step-icon">3</span> <strong>Fallback для Safari/Firefox</strong>: браузеры без <code>SpeechRecognition</code> → добавить кнопку «Записать аудио» (MediaRecorder API). Отправить blob на бэкенд <code>POST /veronica/transcribe</code>. На бэкенде — вызвать Gemini с audio-файлом (Gemini 2.5 Flash умеет аудио).</div>
+              <div class="step-item"><span class="step-icon">4</span> <strong>TTS — браузерный</strong>: добавить кнопку 🔊 рядом с каждым ответом. При клике: <code>speechSynthesis.speak(new SpeechSynthesisUtterance(text))</code>. Выбрать голос: <code>voices.find(v => v.lang === 'ru-RU')</code>. Стоп-кнопка: <code>speechSynthesis.cancel()</code>.</div>
+              <div class="step-item"><span class="step-icon">5</span> <strong>TTS — через Gemini (качество выше)</strong>: создать endpoint <code>POST /veronica/tts</code> в <code>main.py</code>. Вызвать Gemini с <code>response_modalities=["audio"]</code>. Вернуть base64 аудио. На фронтенде — воспроизвести через <code>new Audio('data:audio/wav;base64,...').play()</code>.</div>
+              <div class="step-item"><span class="step-icon">6</span> <strong>Настройки голоса</strong>: добавить в UI выбор скорости (0.5x — 2x) и голоса. Сохранять предпочтения в <code>localStorage</code>. Автовоспроизведение ответа — опционально (toggle в настройках).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEV 5: RAG -->
+        <div class="roadmap-item phase-dev3">
+          <div class="roadmap-line"></div>
+          <div class="roadmap-num-col"><div class="roadmap-circle">D5</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">🧠 RAG — Умная память на документах</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-info">Приоритет 5</span>
+                <span class="effort-pill">~3–5 дней</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              Retrieval-Augmented Generation: документы разбиваются на части, векторизируются и хранятся в векторной БД. При вопросе — находятся самые релевантные части и передаются в контекст модели. Veronica «помнит» всё что ей загрузили.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">1</span> <strong>Установка ChromaDB</strong>: добавить <code>chromadb>=0.5.0</code> в <code>requirements.txt</code>. Инициализировать persistent client: <code>chroma_client = chromadb.PersistentClient(path="./chroma_db")</code>. Создать коллекцию <code>documents</code> при старте.</div>
+              <div class="step-item"><span class="step-icon">2</span> <strong>Chunking (нарезка)</strong>: после извлечения текста из документа (уже есть в <code>_extract_document_text</code>) — разбить на chunks по 500 символов с overlap 100. Библиотека: <code>langchain.text_splitter.RecursiveCharacterTextSplitter</code> или написать вручную (10 строк).</div>
+              <div class="step-item"><span class="step-icon">3</span> <strong>Векторизация через Gemini Embeddings</strong>: вызвать <code>genai.embed_content(model="models/text-embedding-004", content=chunk)</code> для каждого chunk. Получить вектор размерности 768. Сохранить в ChromaDB: <code>collection.add(documents=[chunk], embeddings=[vec], ids=[chunk_id], metadatas=[{"file_id": ...}])</code>.</div>
+              <div class="step-item"><span class="step-icon">4</span> <strong>Новый endpoint upload</strong>: расширить <code>/veronica/upload-document</code> — после сохранения файла автоматически запускать индексацию через <code>asyncio.create_task(index_document(path, file_id))</code>. Показывать прогресс через отдельный <code>GET /veronica/index-status/{file_id}</code>.</div>
+              <div class="step-item"><span class="step-icon">5</span> <strong>Retrieval при каждом вопросе</strong>: в <code>ask_veronica()</code> — перед вызовом AI получить embedding вопроса, запросить ChromaDB: <code>collection.query(query_embeddings=[q_vec], n_results=5)</code>. Собрать топ-5 chunks в строку <code>context</code>.</div>
+              <div class="step-item"><span class="step-icon">6</span> <strong>Инжекция контекста в промпт</strong>: собрать итоговый промпт: <code>"Используй следующий контекст из документов:\n{context}\n\nВопрос: {query}"</code>. Если context пустой — использовать обычный промпт без RAG.</div>
+              <div class="step-item"><span class="step-icon">7</span> <strong>UI — показать источники</strong>: добавить в ответ Veronica блок «Источники» — список документов, из которых взяты chunks. На фронтенде отобразить как коллапсируемый блок под ответом.</div>
+              <div class="step-item"><span class="step-icon">8</span> <strong>Управление индексом</strong>: добавить endpoint <code>DELETE /veronica/rag/{file_id}</code> — удаляет все chunks документа из ChromaDB. Показать в UI кнопку «Удалить из памяти» рядом с каждым загруженным файлом.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEV 6: IMAGE EDITOR -->
+        <div class="roadmap-item phase-dev3">
+          <div class="roadmap-num-col"><div class="roadmap-circle">D6</div></div>
+          <div class="roadmap-body">
+            <div class="roadmap-header">
+              <div class="roadmap-title">🖼️ Редактор изображений в чате</div>
+              <div class="roadmap-meta">
+                <span class="tag tag-info">Приоритет 6</span>
+                <span class="effort-pill">~3–5 дней</span>
+              </div>
+            </div>
+            <div class="roadmap-desc">
+              После генерации изображения пользователь может его доработать: дорисовать элементы (inpainting), расширить кадр (outpainting), увеличить разрешение (upscaling). Уникальная функция — мало кто из чат-ботов это умеет.
+            </div>
+            <div class="step-list">
+              <div class="step-item"><span class="step-icon">1</span> <strong>Canvas-редактор на фронтенде</strong>: добавить modal с <code>&lt;canvas&gt;</code> элементом. Когда пользователь кликает на сгенерированное изображение — открывается редактор. Инструменты: кисть для маски (белый = область для inpaint), eraser, zoom.</div>
+              <div class="step-item"><span class="step-icon">2</span> <strong>Маска → бэкенд</strong>: при нажатии «Дорисовать» — экспортировать canvas маску как base64 PNG. Отправить на <code>POST /veronica/inpaint</code> вместе с оригинальным image_url и текстовым prompt.</div>
+              <div class="step-item"><span class="step-icon">3</span> <strong>Inpainting через Gemini</strong>: на бэкенде — отправить оригинал + маску в Gemini 2.0 Flash: <code>model.generate_content([prompt, image_part, mask_part], generation_config={response_modalities:["image"]})</code>. Gemini умеет редактировать изображения по маске.</div>
+              <div class="step-item"><span class="step-icon">4</span> <strong>Inpainting через FLUX.1-Fill</strong>: альтернатива — HuggingFace модель <code>black-forest-labs/FLUX.1-Fill-dev</code>. POST на <code>https://api-inference.huggingface.co/models/...</code> с полями <code>image</code> + <code>mask_image</code> + <code>prompt</code>.</div>
+              <div class="step-item"><span class="step-icon">5</span> <strong>Upscaling</strong>: добавить кнопку «Увеличить качество» под каждым изображением. Бэкенд endpoint <code>POST /veronica/upscale</code>. Использовать HuggingFace модель <code>gokaygokay/Flux-4x-Upscaler</code> или <code>philz1337x/clarity-upscaler</code>.</div>
+              <div class="step-item"><span class="step-icon">6</span> <strong>История версий</strong>: хранить все версии изображения в <code>uploaded_files</code> с суффиксами <code>_v1</code>, <code>_v2</code> и т.д. В UI — показывать слайдер «До / После». Кнопка «Откатить к версии N».</div>
+              <div class="step-item"><span class="step-icon">7</span> <strong>Outpainting (расширение кадра)</strong>: в canvas-редакторе добавить возможность увеличить размер холста (padding снаружи). Белые края автоматически становятся маской. Отправить расширенное изображение на тот же <code>/inpaint</code> endpoint с prompt «продолжи изображение».</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section>
+      <div class="section-title">Сводный порядок реализации</div>
+      <div class="card">
+        <div class="card-body">
+          <div style="display:grid;gap:10px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent3);flex-shrink:0;min-width:24px;">D1</span>
+              <div><strong style="color:var(--accent3);">Streaming SSE</strong> — <span style="color:var(--text-dim);font-size:0.82rem;">4–6 часов. Наибольший эффект на UX при минимальных усилиях. Пользователи сразу заметят разницу — ответы появляются мгновенно.</span></div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent3);flex-shrink:0;min-width:24px;">D2</span>
+              <div><strong style="color:var(--accent3);">Docker + Деплой</strong> — <span style="color:var(--text-dim);font-size:0.82rem;">1–2 дня. Без этого Veronica живёт только на вашем ноутбуке. После деплоя — реальные пользователи и обратная связь.</span></div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent2);flex-shrink:0;min-width:24px;">D3</span>
+              <div><strong style="color:var(--accent2);">PWA</strong> — <span style="color:var(--text-dim);font-size:0.82rem;">3–4 часа. Делать сразу после деплоя. Иконка на телефоне кардинально меняет восприятие продукта. Почти нулевые трудозатраты.</span></div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--accent2);flex-shrink:0;min-width:24px;">D4</span>
+              <div><strong style="color:var(--accent2);">Голосовой ввод + TTS</strong> — <span style="color:var(--text-dim);font-size:0.82rem;">1 день. На мобиле особенно критично. Браузерный Web Speech API — быстро, Gemini TTS — качественно.</span></div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--info);flex-shrink:0;min-width:24px;">D5</span>
+              <div><strong style="color:var(--info);">RAG на документах</strong> — <span style="color:var(--text-dim);font-size:0.82rem;">3–5 дней. Серьёзная функция — выделяет Veronica среди простых чат-ботов. Браться после того как есть пользователи.</span></div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--info);flex-shrink:0;min-width:24px;">D6</span>
+              <div><strong style="color:var(--info);">Редактор изображений</strong> — <span style="color:var(--text-dim);font-size:0.82rem;">3–5 дней. Сложно, но уникально. Мало кто из чат-ботов умеет редактировать свои же изображения.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <span class="pulse"></span>
+    analysis.html · Veronica AI · FastAPI + Gemini 2.5 + GPT-OSS-120B + HuggingFace<br>
+    <span style="opacity:.5;margin-top:6px;display:block;">Сгенерировано Claude · 2026</span>
+  </footer>
+
+</div>
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

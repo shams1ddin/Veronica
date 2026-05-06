@@ -1,0 +1,39 @@
+name: Deploy Veronica AI
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Ручной запуск из GitHub UI
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            cd ~/veronica
+
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            echo "🐳 Rebuilding and restarting containers..."
+            docker compose pull
+            docker compose up -d --build --remove-orphans
+
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+
+            echo "✅ Deploy complete!"
+            docker compose ps

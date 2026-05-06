@@ -1,0 +1,49 @@
+# ── Veronica AI — .dockerignore ──────────────────────────────────────────────
+# Секреты и конфиги — никогда не в образ!
+.env
+.env.*
+*.env
+
+# Git
+.git
+.gitignore
+
+# Python кэш
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+.Python
+
+# Виртуальное окружение
+.venv/
+venv/
+env/
+
+# БД и данные — монтируются как volume
+veronica.db
+data/
+chroma_db/
+
+# Старые файлы истории чатов (до SQLite)
+chat_histories.pkl
+*.pkl
+
+# Временные файлы
+*.tmp
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Документация разработки
+analysis.html
+background_only.html

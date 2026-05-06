@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Starry Sky — Canvas</title>
+  <style>
+    html,body{margin:0;height:100%;background:#05060a;overflow:hidden}
+    canvas{display:block;position:fixed;inset:0}
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <script>
+(() => {
+  const dpr = Math.min(2, window.devicePixelRatio || 1.5);
+  const c = document.getElementById('view');
+  const ctx = c.getContext('2d');
+  let w=0,h=0;
+
+  function resize(){
+    w=window.innerWidth;h=window.innerHeight;
+    c.width=w*dpr;c.height=h*dpr;
+    c.style.width=w+'px';c.style.height=h+'px';
+  }
+  window.addEventListener('resize',resize);
+  resize();
+
+  // ===== Stars =====
+  const stars=[];
+  const STAR_COUNT=70; // меньше звёзд => дальше кажутся
+  for(let i=0;i<STAR_COUNT;i++){
+    stars.push({
+      x:Math.random()*w*dpr,
+      y:Math.random()*h*dpr,
+      r:Math.random()*0.5*dpr+0.1, // мельче
+      tw:Math.random()*1000,
+      speed:0,
+      fall:false,
+      life:1,
+      depth:0.3+Math.random()*0.7 // «глубина» — влияет на яркость
+    });
+  }
+
+  function spawnFallingStar(){
+    const s=stars[Math.floor(Math.random()*stars.length)];
+    if(!s.fall){
+      s.fall=true;
+      s.speed=2+Math.random()*2;
+      s.life=1;
+    }
+  }
+
+  let lastFall=0;
+  let start=performance.now();
+  let skyRotation=0;
+
+  function draw(now){
+    const dt=(now-start)/1000;
+    const fade=Math.min(1,dt/2);
+
+    ctx.fillStyle=`rgba(5,6,10,${0.5*fade})`;
+    ctx.fillRect(0,0,w*dpr,h*dpr);
+
+    ctx.save();
+    ctx.translate(w*dpr/2,h*dpr/2);
+    ctx.rotate(skyRotation);
+    ctx.translate(-w*dpr/2,-h*dpr/2);
+
+    stars.forEach(s=>{
+      if(s.fall){
+        s.x+=s.speed*2*dpr;
+        s.y+=s.speed*dpr;
+        s.life-=0.01;
+        ctx.strokeStyle=`rgba(255,255,200,${s.life})`;
+        ctx.beginPath();ctx.moveTo(s.x,s.y);
+        ctx.lineTo(s.x-25*dpr,s.y-12*dpr);
+        ctx.stroke();
+        if(s.life<=0||s.x>w*dpr||s.y>h*dpr){
+          s.x=Math.random()*w*dpr;
+          s.y=Math.random()*h*dpr*0.5;
+          s.fall=false;
+          s.life=1;
+        }
+      }
+      else{
+        const tw=0.5+0.5*Math.sin((now*0.002)+s.tw);
+        ctx.globalAlpha=fade*(0.4+0.6*tw)*s.depth;
+
+        // 🌟 Bloom эффект
+        for(let glow=2;glow>0;glow--){
+          ctx.fillStyle=`rgba(255,255,255,${0.03*glow*s.depth})`;
+          ctx.beginPath();
+          ctx.arc(s.x,s.y,s.r+glow*2*dpr,0,Math.PI*2);
+          ctx.fill();
+        }
+
+        // Ядро звезды
+        ctx.fillStyle='white';
+        ctx.beginPath();
+        ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fill();
+      }
+    });
+
+    ctx.restore();
+    ctx.globalAlpha=1;
+
+    if(now-lastFall>4000+Math.random()*5000){
+      spawnFallingStar();
+      lastFall=now;
+    }
+
+    skyRotation+=0.00001; // ещё медленнее
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+  </script>
+</body>
+</html>
